@@ -1,0 +1,19 @@
+# SQLite configuration (default)
+defaults:
+  - db: sqlite
+  - pages
+  - _self_
+
+app:
+  name: "Finance Dashboard"
+  version: "1.0.0"
+  settings:
+    page_title: 'Personal Finance Dashboard'
+    page_icon: '💰'
+    layout: 'wide'
+    initial_sidebar_state: 'expanded'
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

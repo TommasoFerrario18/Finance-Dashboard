@@ -1,0 +1,35 @@
+pages:
+  - name: "Dashboard"
+    icon: "📊"
+    class: "DashboardPage"
+    description: "Complete overview with tabs for net worth, allocation, and performance"
+    enabled: true
+    order: 1
+    
+  - name: "Investments"
+    icon: "💰"
+    class: "InvestmentsPage"
+    description: "Detailed analysis of individual investments"
+    enabled: true
+    order: 2
+    
+  - name: "Income & Expenses"
+    icon: "💵"
+    class: "IncomeExpensesPage"
+    description: "Track income, expenses, and savings"
+    enabled: true
+    order: 3
+    
+  - name: "Advanced Analysis"
+    icon: "🔍"
+    class: "DetailedAnalysisPage"
+    description: "Deep-dive analytics and projections"
+    enabled: true
+    order: 4
+
+# Page display settings
+page_settings:
+  show_icons: true
+  show_descriptions: true
+  default_page: "Dashboard"
+  navigation_style: "radio"  # Options: radio, sidebar, tabs

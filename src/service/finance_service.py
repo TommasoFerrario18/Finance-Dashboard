@@ -1,0 +1,2 @@
+class FinanceService:
+    pass
