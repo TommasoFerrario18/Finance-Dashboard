@@ -1,11 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
-from sqlalchemy import CheckConstraint, Float, Index, String
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):

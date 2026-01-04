@@ -17,3 +17,29 @@ app:
 logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+
+ingestion: False
+
+# CSV import settings
+csv_import:
+  folder: "data"
+  file_path: "financial_data.csv"
+  date_format: "%Y-%m-%d"
+
+# Asset mappings for CSV migration
+asset_mappings:
+  - csv_prefix: "DWS Invest SDG Global Equities NC"
+    name: "DWS Invest SDG Global Equities NC"
+    type: "Mutual Fund"
+    currency: "EUR"
+
+  - csv_prefix: "BGF Next Generation Technology E2"
+    name: "BGF Next Generation Technology E2"
+    type: "Mutual Fund"
+    currency: "EUR"
+
+  - csv_prefix: "Crypto"
+    name: "Cryptocurrency Portfolio"
+    type: "Crypto"
+    currency: "EUR"

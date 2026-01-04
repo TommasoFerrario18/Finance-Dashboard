@@ -1,8 +1,9 @@
 import logging
 from pathlib import Path
-from hydra import initialize_config_dir, compose
-from omegaconf import DictConfig
+
 import streamlit as st
+from hydra import compose, initialize_config_dir
+from omegaconf import DictConfig
 
 logger = logging.getLogger(__name__)
 

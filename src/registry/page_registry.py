@@ -1,7 +1,7 @@
-from typing import Dict, List, Any, Type
-from omegaconf import DictConfig, OmegaConf
-import importlib
 import logging
+from typing import Any
+
+from omegaconf import DictConfig, OmegaConf
 
 from src.mappings.mappings import MAP_PAGES
 
@@ -68,7 +68,7 @@ class PageRegistry:
             logger.error(f"Failed to load class {class_name}: {e}")
             self._page_classes[page_name] = None
 
-    def to_dict(self) -> Dict[str, Dict[str, Any]]:
+    def to_dict(self) -> dict[str, dict[str, Any]]:
         """
         Convert to dictionary format compatible with legacy code.
 
@@ -85,7 +85,7 @@ class PageRegistry:
         return result
 
 
-def load_pages_from_config(cfg: DictConfig) -> Dict[str, Dict[str, Any]]:
+def load_pages_from_config(cfg: DictConfig) -> dict[str, dict[str, Any]]:
     """
     Load pages configuration from Hydra config.
 

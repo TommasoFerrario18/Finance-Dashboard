@@ -1,7 +1,8 @@
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Optional
-from sqlalchemy import Engine, and_, func, select
+from typing import Any
+
+from sqlalchemy import Engine, and_, desc, func, select
 from sqlalchemy.orm import sessionmaker
 
 from src.model.models import Asset, AssetValue, MonthlyTransaction
@@ -40,7 +41,7 @@ class FinanceService:
     def create_tables(self):
         """Create all database tables."""
         init_database(self.engine)
-    
+
     # Asset operations
 
     def add_asset(self, name: str, asset_type: str, currency: str = "EUR", description: str | None = None) -> Asset:
@@ -70,7 +71,7 @@ class FinanceService:
             session.flush()
             session.refresh(asset)
             return asset
-    
+
     def get_asset_by_name(self, name: str) -> Asset | None:
         """Get an asset by name."""
         with self.get_session() as session:
@@ -88,7 +89,7 @@ class FinanceService:
         with self.get_session() as session:
             stmt = select(Asset).where(Asset.asset_type == asset_type)
             return list(session.scalars(stmt).all())
-    
+
     # Asset value operations
     def add_asset_value(self, date: datetime, asset: Asset, amount_invested: float, countervalue: float) -> AssetValue:
         """
@@ -127,7 +128,7 @@ class FinanceService:
             session.flush()
             session.refresh(value)
             return value
-        
+
     def get_asset_values(
         self, asset: Asset | None = None, start_date: datetime | None = None, end_date: datetime | None = None
     ) -> list[AssetValue]:
@@ -145,7 +146,7 @@ class FinanceService:
 
             stmt = stmt.order_by(AssetValue.date)
             return list(session.scalars(stmt).all())
-    
+
     # MonthlyTransaction operations
     def add_monthly_transaction(
         self, date: datetime, income: float = 0.0, expenses: float = 0.0, cash: float = 0.0, notes: str | None = None
@@ -199,10 +200,10 @@ class FinanceService:
 
             stmt = stmt.order_by(MonthlyTransaction.date)
             return list(session.scalars(stmt).all())
-    
+
     # Analytics methods
 
-    def get_portfolio_summary(self, date: Optional[datetime] = None) -> list[dict[str, Any]]:
+    def get_portfolio_summary(self, date: datetime | None = None) -> list[dict[str, Any]]:
         """
         Get portfolio summary for a specific date.
 
@@ -278,7 +279,7 @@ class FinanceService:
                 for row in results
             ]
 
-    def get_asset_type_allocation(self, date: Optional[datetime] = None) -> list[dict[str, Any]]:
+    def get_asset_type_allocation(self, date: datetime | None = None) -> list[dict[str, Any]]:
         """Get portfolio allocation by asset type."""
         with self.get_session() as session:
             if date is None:
@@ -320,7 +321,7 @@ class FinanceService:
                 for row in results
             ]
 
-    def get_best_worst_performers(self, date: Optional[datetime] = None) -> dict[str, dict[str, Any]]:
+    def get_best_worst_performers(self, date: datetime | None = None) -> dict[str, dict[str, Any]]:
         """Get best and worst performing assets."""
         summary = self.get_portfolio_summary(date)
 

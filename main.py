@@ -1,8 +1,11 @@
 import logging
+
 import streamlit as st
 
 from src.ui.finance_dashboard import FinanceDashboard
+from src.utils.env_loader import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 

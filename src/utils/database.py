@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 
 from src.model.models import Base
-from sqlalchemy.engine import Engine
+
 
 def create_database_engine(
     database_url: str,
@@ -10,11 +11,10 @@ def create_database_engine(
     max_overflow: int = 10,
     pool_pre_ping: bool = True,
     pool_recycle: int = 3600,
-    **kwargs
 ) -> Engine:
     """
     Create a SQLAlchemy engine.
-    
+
     Args:
         database_url: Database connection URL
         echo: Whether to echo SQL statements
@@ -23,23 +23,25 @@ def create_database_engine(
         pool_pre_ping: Test connections before using
         pool_recycle: Recycle connections after N seconds
         **kwargs: Additional arguments
-    
+
     Returns:
         SQLAlchemy engine instance
     """
     engine_args = {
-        'echo': echo,
-        'pool_pre_ping': pool_pre_ping,
+        "echo": echo,
+        "pool_pre_ping": pool_pre_ping,
     }
-    
+
     # Only add pool settings for PostgreSQL
-    if database_url.startswith('postgresql'):
-        engine_args.update({
-            'pool_size': pool_size,
-            'max_overflow': max_overflow,
-            'pool_recycle': pool_recycle,
-        })
-    
+    if database_url.startswith("postgresql"):
+        engine_args.update(
+            {
+                "pool_size": pool_size,
+                "max_overflow": max_overflow,
+                "pool_recycle": pool_recycle,
+            }
+        )
+
     return create_engine(database_url, **engine_args)
 
 

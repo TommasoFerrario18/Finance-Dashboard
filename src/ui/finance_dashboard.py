@@ -1,11 +1,12 @@
 import logging
-import streamlit as st
-from typing import Optional
 
+import streamlit as st
 from omegaconf import DictConfig
 
 from src.registry.page_registry import load_pages_from_config
 from src.service.finance_service import FinanceService
+from src.service.ingestion import Ingestion
+from src.ui.config import get_database_service
 from src.utils.config import load_hydra_config, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -14,11 +15,13 @@ logger = logging.getLogger(__name__)
 class FinanceDashboard:
     """Main dashboard application class with enhanced features."""
 
-    def __init__(self):
+    def __init__(
+        self, config: DictConfig | None = None, service: FinanceService | None = None, data_loaded: bool = False
+    ):
         """Initialize the dashboard."""
-        self.cfg: Optional[DictConfig] = None
-        self.service: Optional[FinanceService] = None
-        self.data_loaded: bool = False
+        self.cfg: DictConfig | None = config
+        self.service: FinanceService | None = service
+        self.data_loaded: bool = data_loaded
 
         self.setup()
 
@@ -30,6 +33,9 @@ class FinanceDashboard:
 
         # Load pages from config
         self.PAGES = load_pages_from_config(self.cfg)
+
+        # Get database service
+        self.service = get_database_service(self.cfg)
 
         logger.info(f"Dashboard initialized - {self.cfg.app.name} v{self.cfg.app.version}")
 
@@ -46,7 +52,6 @@ class FinanceDashboard:
             with st.expander("ℹ️ About"):
                 st.markdown(f"""
                 **Version:** {self.cfg.app.version}
-                
                 **Features:**
                 - 📊 Multi-tab dashboard
                 - 📈 Interactive charts
@@ -100,11 +105,9 @@ class FinanceDashboard:
                 2. Select a date (optional)
                 3. Navigate between pages
                 4. Explore interactive charts
-                
                 **CSV Format:**
                 - Date, Income, Expenses, Cash
                 - Asset columns: [Name] Invested, [Name] Countervalue
-                
                 **Date Filter:**
                 - View historical snapshots
                 - Compare time periods
@@ -112,54 +115,58 @@ class FinanceDashboard:
                 """)
 
         return uploaded_file, selected_page
-    
+
     def render_page(self, page_name: str, selected_date=None) -> None:
         """
         Render the selected page.
-        
+
         Args:
             page_name: Name of the page to render
             selected_date: Optional date filter
         """
         page_config = self.PAGES.get(page_name)
-        
+
         if page_config:
             try:
-                page_class = page_config['class']
+                page_class = page_config["class"]
                 page = page_class(self.service)
-                
+
                 # Render page with date filter
-                if hasattr(page, 'render_with_date'):
+                if hasattr(page, "render_with_date"):
                     page.render_with_date(selected_date)
                 else:
                     page.render()
-                    
+
             except Exception as e:
                 st.error(f"Error rendering page: {e}")
                 logger.error(f"Page render error: {e}", exc_info=True)
-                
+
                 with st.expander("📋 Error Details"):
                     st.exception(e)
         else:
             st.error(f"Unknown page: {page_name}")
-    
+
     def render_footer(self) -> None:
         """Render footer with additional info."""
         st.markdown("---")
-        
+
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             st.caption("💡 **Tip:** Click on charts to interact")
-        
+
         with col2:
             st.caption("📊 Data updates on file upload")
-        
+
         with col3:
             st.caption(f"⚡ Powered by {self.cfg.app.name}")
 
     def run(self):
         """Run the main dashboard application."""
+        if self.cfg.ingestion:
+            migration = Ingestion(self.service, self.cfg)
+            migration.migrate()
+
         # Render header
         self.render_header()
 
