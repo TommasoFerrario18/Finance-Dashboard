@@ -112,8 +112,59 @@ class FinanceDashboard:
                 """)
 
         return uploaded_file, selected_page
+    
+    def render_page(self, page_name: str, selected_date=None) -> None:
+        """
+        Render the selected page.
+        
+        Args:
+            page_name: Name of the page to render
+            selected_date: Optional date filter
+        """
+        page_config = self.PAGES.get(page_name)
+        
+        if page_config:
+            try:
+                page_class = page_config['class']
+                page = page_class(self.service)
+                
+                # Render page with date filter
+                if hasattr(page, 'render_with_date'):
+                    page.render_with_date(selected_date)
+                else:
+                    page.render()
+                    
+            except Exception as e:
+                st.error(f"Error rendering page: {e}")
+                logger.error(f"Page render error: {e}", exc_info=True)
+                
+                with st.expander("📋 Error Details"):
+                    st.exception(e)
+        else:
+            st.error(f"Unknown page: {page_name}")
+    
+    def render_footer(self) -> None:
+        """Render footer with additional info."""
+        st.markdown("---")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.caption("💡 **Tip:** Click on charts to interact")
+        
+        with col2:
+            st.caption("📊 Data updates on file upload")
+        
+        with col3:
+            st.caption(f"⚡ Powered by {self.cfg.app.name}")
 
     def run(self):
         """Run the main dashboard application."""
         # Render header
         self.render_header()
+
+        # Handle sidebar and file upload
+        _, selected_page = self.render_sidebar()
+
+        self.render_page(selected_page)
+        self.render_footer()

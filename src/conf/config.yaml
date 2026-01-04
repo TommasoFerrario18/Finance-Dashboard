@@ -1,6 +1,6 @@
 # SQLite configuration (default)
 defaults:
-  - db: sqlite
+  - db: supabase
   - pages
   - _self_
 
