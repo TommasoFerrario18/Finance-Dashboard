@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from sqlalchemy import Engine, and_, desc, func, select
 from sqlalchemy.orm import sessionmaker
@@ -203,7 +203,7 @@ class FinanceService:
 
     # Analytics methods
 
-    def get_portfolio_summary(self, date: datetime | None = None) -> list[dict[str, Any]]:
+    def get_portfolio_summary(self, date: Optional[datetime] = None) -> list[dict[str, Any]]:
         """
         Get portfolio summary for a specific date.
 
@@ -253,7 +253,7 @@ class FinanceService:
 
             return summary
 
-    def get_portfolio_history(self) -> list[dict[str, Any]]:
+    def get_portfolio_history(self, date: Optional[datetime] = None) -> list[dict[str, Any]]:
         """Get portfolio value history over time."""
         with self.get_session() as session:
             # Aggregate by date
@@ -279,7 +279,7 @@ class FinanceService:
                 for row in results
             ]
 
-    def get_asset_type_allocation(self, date: datetime | None = None) -> list[dict[str, Any]]:
+    def get_asset_type_allocation(self, date: Optional[datetime] = None) -> list[dict[str, Any]]:
         """Get portfolio allocation by asset type."""
         with self.get_session() as session:
             if date is None:
@@ -321,7 +321,7 @@ class FinanceService:
                 for row in results
             ]
 
-    def get_best_worst_performers(self, date: datetime | None = None) -> dict[str, dict[str, Any]]:
+    def get_best_worst_performers(self, date: Optional[datetime] = None) -> dict[str, dict[str, Any]]:
         """Get best and worst performing assets."""
         summary = self.get_portfolio_summary(date)
 
