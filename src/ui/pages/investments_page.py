@@ -79,4 +79,4 @@ class InvestmentsPage:
 
                 # Asset history chart
                 fig = self.chart_factory.create_asset_history_chart(self.service, asset["name"])
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')

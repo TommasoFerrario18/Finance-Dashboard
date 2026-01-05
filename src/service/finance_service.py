@@ -1,13 +1,16 @@
 from contextlib import contextmanager
-from datetime import datetime
-from typing import Any, Optional
+from datetime import date, datetime
+import logging
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Engine, and_, desc, func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import Engine, and_, desc, func, or_, select
 from sqlalchemy.orm import sessionmaker
 
-from src.model.models import Asset, AssetValue, MonthlyTransaction
+from src.model.models import Asset, AssetValue, Expense, ExpenseCategory, MonthlyTransaction
 from src.utils.database import init_database
 
+logger = logging.getLogger(__name__)
 
 class FinanceService:
     """
@@ -338,3 +341,424 @@ class FinanceService:
         sorted_assets = sorted(invested_assets, key=lambda x: x["return_percentage"], reverse=True)
 
         return {"best": sorted_assets[0], "worst": sorted_assets[-1]}
+
+    # ==================== Expense Tracking Methods ====================
+
+    def save_expense(
+        self,
+        date: date,
+        time: Optional[datetime],
+        amount: float,
+        category: str,
+        subcategory: Optional[str] = None,
+        merchant: Optional[str] = None,
+        location: Optional[str] = None,
+        payment_method: str = "Cash",
+        description: Optional[str] = None,
+        tags: Optional[List[str]] = None
+    ) -> int:
+        """
+        Save a new expense entry.
+        
+        Args:
+            date: Date of expense
+            time: Time of expense
+            amount: Amount spent
+            category: Expense category
+            subcategory: Optional subcategory
+            merchant: Optional merchant/store name
+            location: Optional location
+            payment_method: Payment method used
+            description: Optional description
+            tags: Optional list of tags
+            
+        Returns:
+            ID of the created expense
+        """
+        session = self.get_session()
+        try:
+            expense = Expense(
+                date=date,
+                time=time,
+                amount=amount,
+                category=category,
+                subcategory=subcategory,
+                merchant=merchant,
+                location=location,
+                payment_method=payment_method,
+                description=description,
+                tags=tags or []
+            )
+            
+            session.add(expense)
+            session.commit()
+            
+            expense_id = expense.id
+            logger.info(f"Saved expense ID {expense_id}: ${amount} in {category}")
+            
+            return expense_id
+            
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to save expense: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    def get_expenses(
+        self,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        categories: Optional[List[str]] = None,
+        payment_methods: Optional[List[str]] = None,
+        min_amount: Optional[float] = None,
+        max_amount: Optional[float] = None,
+        search_text: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get expenses with optional filters.
+        
+        Args:
+            start_date: Filter from this date
+            end_date: Filter to this date
+            categories: Filter by categories
+            payment_methods: Filter by payment methods
+            min_amount: Minimum amount filter
+            max_amount: Maximum amount filter
+            search_text: Search in merchant, description, tags
+            
+        Returns:
+            List of expense dictionaries
+        """
+        session = self.get_session()
+        try:
+            query = session.query(Expense)
+
+            # Apply filters
+            if start_date:
+                query = query.filter(Expense.date >= start_date)
+
+            if end_date:
+                query = query.filter(Expense.date <= end_date)
+
+            if categories:
+                query = query.filter(Expense.category.in_(categories))
+
+            if payment_methods:
+                query = query.filter(Expense.payment_method.in_(payment_methods))
+
+            if min_amount is not None:
+                query = query.filter(Expense.amount >= min_amount)
+
+            if max_amount is not None:
+                query = query.filter(Expense.amount <= max_amount)
+
+            if search_text:
+                search_pattern = f"%{search_text}%"
+                query = query.filter(
+                    or_(
+                        Expense.merchant.like(search_pattern),
+                        Expense.description.like(search_pattern),
+                        Expense.subcategory.like(search_pattern)
+                    )
+                )
+
+            # Order by date and time descending
+            query = query.order_by(desc(Expense.date), desc(Expense.time))
+
+            # Execute query and convert to dictionaries
+            expenses = query.all()
+            return [expense.to_dict() for expense in expenses]
+            
+        except Exception as e:
+            logger.error(f"Failed to get expenses: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    def get_recent_expenses(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get most recent expenses.
+        
+        Args:
+            limit: Maximum number of expenses to return
+            
+        Returns:
+            List of expense dictionaries
+        """
+        session = self.get_session()
+        try:
+            expenses = session.query(Expense)\
+                .order_by(desc(Expense.date), desc(Expense.time))\
+                .limit(limit)\
+                .all()
+            
+            return [expense.to_dict() for expense in expenses]
+            
+        except Exception as e:
+            logger.error(f"Failed to get recent expenses: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    def delete_expense(self, expense_id: int) -> None:
+        """
+        Delete an expense.
+        
+        Args:
+            expense_id: ID of expense to delete
+        """
+        session = self.get_session()
+        try:
+            expense = session.query(Expense).filter(Expense.id == expense_id).first()
+            
+            if expense:
+                session.delete(expense)
+                session.commit()
+                logger.info(f"Deleted expense ID: {expense_id}")
+            else:
+                logger.warning(f"Expense ID {expense_id} not found")
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to delete expense: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    def update_expense(self, expense_id: int, **kwargs) -> None:
+        """
+        Update an expense.
+        
+        Args:
+            expense_id: ID of expense to update
+            **kwargs: Fields to update
+        """
+        session = self.get_session()
+        try:
+            expense = session.query(Expense).filter(Expense.id == expense_id).first()
+            
+            if not expense:
+                raise ValueError(f"Expense ID {expense_id} not found")
+            
+            # Update allowed fields
+            allowed_fields = [
+                'date', 'time', 'amount', 'category', 'subcategory',
+                'merchant', 'location', 'payment_method', 'description', 'tags'
+            ]
+            
+            for field, value in kwargs.items():
+                if field in allowed_fields:
+                    setattr(expense, field, value)
+            
+            session.commit()
+            logger.info(f"Updated expense ID: {expense_id}")
+            
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to update expense: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    # ==================== Category Management Methods ====================
+
+    def get_expense_categories(self, active_only: bool = True) -> List[str]:
+        """
+        Get list of expense categories.
+        
+        Args:
+            active_only: Only return active categories
+            
+        Returns:
+            List of category names
+        """
+        session = self.get_session()
+        try:
+            query = session.query(ExpenseCategory.name).order_by(ExpenseCategory.name)
+            
+            if active_only:
+                query = query.filter(ExpenseCategory.active == True)
+            
+            categories = query.all()
+            return [cat[0] for cat in categories]
+            
+        except Exception as e:
+            logger.error(f"Failed to get expense categories: {e}", exc_info=True)
+            # Return default categories if query fails
+            return [
+                "Food & Dining", "Transportation", "Shopping", "Entertainment",
+                "Bills & Utilities", "Healthcare", "Travel", "Education",
+                "Personal Care", "Other"
+            ]
+        finally:
+            session.close()
+
+    def add_expense_category(
+        self,
+        name: str,
+        icon: Optional[str] = None,
+        description: Optional[str] = None,
+        color: str = "#FF6B6B"
+    ) -> None:
+        """
+        Add a new expense category.
+        
+        Args:
+            name: Category name
+            icon: Optional emoji icon
+            description: Optional description
+            color: Category color (hex)
+        """
+        session = self.get_session()
+        try:
+            category = ExpenseCategory(
+                name=name,
+                icon=icon,
+                description=description,
+                color=color,
+                active=True
+            )
+            
+            session.add(category)
+            session.commit()
+            logger.info(f"Added expense category: {name}")
+            
+        except IntegrityError:
+            session.rollback()
+            raise ValueError(f"Category '{name}' already exists")
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to add expense category: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    def delete_expense_category(self, category_name: str) -> None:
+        """
+        Delete (deactivate) an expense category.
+        
+        Args:
+            category_name: Name of category to delete
+        """
+        session = self.get_session()
+        try:
+            # Check if any expenses use this category
+            expense_count = session.query(Expense)\
+                .filter(Expense.category == category_name)\
+                .count()
+            
+            if expense_count > 0:
+                raise ValueError(
+                    f"Cannot delete category '{category_name}' - "
+                    f"it has {expense_count} expenses. Reassign expenses first."
+                )
+            
+            # Soft delete (set active = False)
+            category = session.query(ExpenseCategory)\
+                .filter(ExpenseCategory.name == category_name)\
+                .first()
+            
+            if category:
+                category.active = False
+                session.commit()
+                logger.info(f"Deleted expense category: {category_name}")
+            else:
+                logger.warning(f"Category '{category_name}' not found")
+                
+        except ValueError:
+            raise
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Failed to delete expense category: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()
+
+    def get_category_expense_count(self, category: str) -> int:
+        """
+        Get count of expenses in a category.
+        
+        Args:
+            category: Category name
+            
+        Returns:
+            Number of expenses in category
+        """
+        session = self.get_session()
+        try:
+            count = session.query(Expense)\
+                .filter(Expense.category == category)\
+                .count()
+            return count
+            
+        except Exception as e:
+            logger.error(f"Failed to get category count: {e}", exc_info=True)
+            return 0
+        finally:
+            session.close()
+
+    # ==================== Statistics Methods ====================
+
+    def get_expense_statistics(
+        self,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get expense statistics for a date range.
+        
+        Args:
+            start_date: Start date
+            end_date: End date
+            
+        Returns:
+            Dictionary with statistics
+        """
+        session = self.get_session()
+        try:
+            query = session.query(Expense)
+            
+            if start_date:
+                query = query.filter(Expense.date >= start_date)
+            
+            if end_date:
+                query = query.filter(Expense.date <= end_date)
+            
+            expenses = query.all()
+            
+            if not expenses:
+                return {
+                    'total': 0,
+                    'count': 0,
+                    'average': 0,
+                    'min': 0,
+                    'max': 0,
+                    'by_category': {}
+                }
+            
+            amounts = [e.amount for e in expenses]
+            
+            # Calculate by category
+            by_category = {}
+            for expense in expenses:
+                cat = expense.category
+                if cat not in by_category:
+                    by_category[cat] = {'total': 0, 'count': 0}
+                by_category[cat]['total'] += expense.amount
+                by_category[cat]['count'] += 1
+            
+            return {
+                'total': sum(amounts),
+                'count': len(amounts),
+                'average': sum(amounts) / len(amounts),
+                'min': min(amounts),
+                'max': max(amounts),
+                'by_category': by_category
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get expense statistics: {e}", exc_info=True)
+            raise
+        finally:
+            session.close()

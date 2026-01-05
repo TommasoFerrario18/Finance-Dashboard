@@ -108,7 +108,7 @@ class DashboardPage:
         with col1:
             # Main net worth chart
             fig = self.chart_factory.create_net_worth_chart(history)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         with col2:
             # Statistics
@@ -132,7 +132,7 @@ class DashboardPage:
         # Profit/Loss chart
         st.markdown("---")
         fig = self.chart_factory.create_profit_loss_chart(history)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
     def _render_allocation_tab(self, allocation: list[dict[str, Any]]) -> None:
         """Render asset allocation tab."""
@@ -143,12 +143,12 @@ class DashboardPage:
         with col1:
             # Pie chart
             fig = self.chart_factory.create_allocation_pie_chart(allocation)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         with col2:
             # Bar chart
             fig = self.chart_factory.create_allocation_bar_chart(allocation)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # Detailed breakdown
         st.markdown("---")
@@ -174,7 +174,7 @@ class DashboardPage:
 
         st.dataframe(
             df[["Asset Type", "Assets", "Invested", "Current Value", "Profit/Loss", "Allocation %"]],
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
         )
 
@@ -184,13 +184,13 @@ class DashboardPage:
 
         # Invested vs Current Value
         fig = self.chart_factory.create_performance_comparison_chart(summary)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         st.markdown("---")
 
         # Returns heatmap
         fig = self.chart_factory.create_returns_heatmap(summary)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         # Performance table
         st.markdown("---")
@@ -218,7 +218,7 @@ class DashboardPage:
 
         st.dataframe(
             df[["Rank", "Asset", "Type", "Invested", "Current Value", "Profit/Loss", "Return %"]],
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
         )
 
@@ -232,19 +232,19 @@ class DashboardPage:
 
         # Income vs Expenses chart
         fig = self.chart_factory.create_income_expense_chart(transactions)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         col1, col2 = st.columns(2)
 
         with col1:
             # Waterfall chart
             fig = self.chart_factory.create_cash_flow_waterfall(transactions, period="total")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         with col2:
             # Savings rate chart
             fig = self.chart_factory.create_savings_rate_chart(transactions)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # Summary statistics
         st.markdown("---")
@@ -287,7 +287,7 @@ class DashboardPage:
 
         if selected_asset:
             fig = self.chart_factory.create_asset_history_chart(self.service, selected_asset)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # Correlation analysis (if multiple assets)
         if len(summary) > 1:

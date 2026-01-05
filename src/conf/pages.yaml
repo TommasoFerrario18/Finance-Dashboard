@@ -26,7 +26,21 @@ pages:
     description: "Deep-dive analytics and projections"
     enabled: true
     order: 4
-
+  
+  - name: "Data Entry"
+    icon: "✍️"
+    class: "DataEntryPage"
+    description: "Manually enter and update financial data"
+    enabled: True
+    order: 5
+  
+  - name: "Expense Tracking"
+    icon: "✍️"
+    class: "ExpenseTrackingPage"
+    description: "Manually enter and update financial data"
+    enabled: True
+    order: 6
+  
 # Page display settings
 page_settings:
   show_icons: true

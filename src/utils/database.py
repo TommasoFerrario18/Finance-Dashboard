@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from src.model.models import Base
+from src.mappings.db_mappings import DEFAULT_EXPENSE_CATEGORIES
+from src.model.models import Base, ExpenseCategory
 
 
 def create_database_engine(
@@ -53,3 +54,17 @@ def init_database(engine):
         engine: SQLAlchemy engine instance
     """
     Base.metadata.create_all(engine)
+
+def init_default_categories(session):
+    """Initialize default expense categories if they don't exist."""
+    from sqlalchemy.exc import IntegrityError
+    
+    for category_data in DEFAULT_EXPENSE_CATEGORIES:
+        try:
+            category = ExpenseCategory(**category_data)
+            session.add(category)
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            # Category already exists, skip
+            continue

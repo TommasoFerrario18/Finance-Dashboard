@@ -29,19 +29,19 @@ class IncomeExpensesPage:
 
         # Main chart
         fig = self.chart_factory.create_income_expense_chart(transactions)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         col1, col2 = st.columns(2)
 
         with col1:
             # Savings rate
             fig = self.chart_factory.create_savings_rate_chart(transactions)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         with col2:
             # Waterfall
             fig = self.chart_factory.create_cash_flow_waterfall(transactions[-1:], period="monthly")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # Transaction table
         st.markdown("---")
@@ -85,4 +85,4 @@ class IncomeExpensesPage:
         ]  # Last 12 months
 
         df = pd.DataFrame(data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)

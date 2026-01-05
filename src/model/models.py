@@ -1,8 +1,9 @@
 from datetime import datetime
+import json
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, Time, TypeDecorator, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
+from sqlalchemy.orm import relationship, validates
 
 class Base(DeclarativeBase):
     """Base class for all models."""
@@ -125,3 +126,216 @@ class MonthlyTransaction(Base):
 
     def __repr__(self) -> str:
         return f"<MonthlyTransaction(date='{self.date}', income={self.income}, expenses={self.expenses})>"
+
+class JSONEncodedList(TypeDecorator):
+    """Custom type for storing lists as JSON strings."""
+    
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        """Convert list to JSON string when saving."""
+        if value is not None:
+            return json.dumps(value)
+        return None
+
+    def process_result_value(self, value, dialect):
+        """Convert JSON string back to list when loading."""
+        if value is not None:
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return []
+        return []
+
+
+class ExpenseCategory(Base):
+    """Expense category model."""
+    
+    __tablename__ = 'expense_categories'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    icon = Column(String(10), nullable=True)
+    description = Column(Text, nullable=True)
+    color = Column(String(7), default='#FF6B6B')  # Hex color code
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship to expenses
+    expenses = relationship('Expense', back_populates='category_obj', lazy='dynamic')
+
+    def __repr__(self):
+        return f"<ExpenseCategory(id={self.id}, name='{self.name}')>"
+
+    @validates('color')
+    def validate_color(self, key, color):
+        """Validate hex color format."""
+        if color and not color.startswith('#'):
+            return f'#{color}'
+        return color
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'icon': self.icon,
+            'description': self.description,
+            'color': self.color,
+            'active': self.active,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class Expense(Base):
+    """Individual expense record model."""
+    
+    __tablename__ = 'expenses'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date, nullable=False, index=True)
+    time = Column(Time, nullable=True)
+    amount = Column(Float, nullable=False)
+    category = Column(String(100), ForeignKey('expense_categories.name'), nullable=False, index=True)
+    subcategory = Column(String(100), nullable=True)
+    merchant = Column(String(200), nullable=True, index=True)
+    location = Column(String(200), nullable=True)
+    payment_method = Column(String(50), default='Cash', nullable=False)
+    description = Column(Text, nullable=True)
+    tags = Column(JSONEncodedList, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship to category
+    category_obj = relationship('ExpenseCategory', back_populates='expenses')
+
+    # Composite indexes for common queries
+    __table_args__ = (
+        Index('idx_date_category', 'date', 'category'),
+        Index('idx_date_amount', 'date', 'amount'),
+    )
+
+    def __repr__(self):
+        return f"<Expense(id={self.id}, date={self.date}, amount={self.amount}, category='{self.category}')>"
+
+    @validates('amount')
+    def validate_amount(self, key, amount):
+        """Validate amount is positive."""
+        if amount < 0:
+            raise ValueError("Expense amount must be positive")
+        return amount
+
+    @validates('payment_method')
+    def validate_payment_method(self, key, method):
+        """Validate payment method."""
+        valid_methods = [
+            'Cash', 'Credit Card', 'Debit Card', 
+            'Mobile Payment', 'Bank Transfer', 'Other'
+        ]
+        if method not in valid_methods:
+            return 'Other'
+        return method
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'id': self.id,
+            'date': self.date.isoformat() if self.date else None,
+            'time': self.time.isoformat() if self.time else None,
+            'amount': self.amount,
+            'category': self.category,
+            'subcategory': self.subcategory,
+            'merchant': self.merchant,
+            'location': self.location,
+            'payment_method': self.payment_method,
+            'description': self.description,
+            'tags': self.tags or [],
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+class FinancialRecord(Base):
+    """Monthly financial record model."""
+    
+    __tablename__ = 'financial_records'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date, unique=True, nullable=False, index=True)
+    income = Column(Float, default=0.0)
+    salary = Column(Float, default=0.0)
+    other_income = Column(Float, default=0.0)
+    expenses = Column(Float, default=0.0)
+    cash = Column(Float, default=0.0)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship to expense details
+    expense_details = relationship(
+        'ExpenseDetail', 
+        back_populates='financial_record',
+        cascade='all, delete-orphan',
+        lazy='dynamic'
+    )
+
+    def __repr__(self):
+        return f"<FinancialRecord(id={self.id}, date={self.date}, income={self.income}, expenses={self.expenses})>"
+
+    @property
+    def net_income(self):
+        """Calculate net income."""
+        return self.income - self.expenses
+
+    @property
+    def savings_rate(self):
+        """Calculate savings rate percentage."""
+        if self.income > 0:
+            return (self.net_income / self.income) * 100
+        return 0.0
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'id': self.id,
+            'date': self.date.isoformat() if self.date else None,
+            'income': self.income,
+            'salary': self.salary,
+            'other_income': self.other_income,
+            'expenses': self.expenses,
+            'cash': self.cash,
+            'notes': self.notes,
+            'net_income': self.net_income,
+            'savings_rate': self.savings_rate
+        }
+
+class ExpenseDetail(Base):
+    """Detailed expense breakdown for financial records."""
+    
+    __tablename__ = 'expense_details'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    record_id = Column(Integer, ForeignKey('financial_records.id', ondelete='CASCADE'), nullable=False)
+    category = Column(String(100), nullable=False)
+    amount = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationship to financial record
+    financial_record = relationship('FinancialRecord', back_populates='expense_details')
+
+    __table_args__ = (
+        Index('idx_expense_details_record', 'record_id'),
+    )
+
+    def __repr__(self):
+        return f"<ExpenseDetail(id={self.id}, record_id={self.record_id}, category='{self.category}', amount={self.amount})>"
+
+    def to_dict(self):
+        """Convert to dictionary."""
+        return {
+            'id': self.id,
+            'record_id': self.record_id,
+            'category': self.category,
+            'amount': self.amount
+        }

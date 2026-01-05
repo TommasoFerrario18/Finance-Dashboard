@@ -46,7 +46,7 @@ class DetailedAnalysisPage:
         st.subheader("Portfolio Growth Trends")
 
         fig = self.chart_factory.create_net_worth_chart(history)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         # Growth statistics
         df = pd.DataFrame(history)
@@ -84,7 +84,7 @@ class DetailedAnalysisPage:
             df = pd.DataFrame(allocation)
 
             fig = self.chart_factory.create_allocation_bar_chart(allocation)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
             # Performance comparison table
             st.markdown("#### Performance by Asset Type")
@@ -97,7 +97,7 @@ class DetailedAnalysisPage:
 
             st.dataframe(
                 df[["asset_type", "num_assets", "Invested", "Value", "P/L", "Return %"]],
-                use_container_width=True,
+                width='stretch',
                 hide_index=True,
             )
 

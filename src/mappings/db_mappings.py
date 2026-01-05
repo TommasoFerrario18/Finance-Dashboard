@@ -1,0 +1,17 @@
+DEFAULT_EXPENSE_CATEGORIES = [
+    {'name': 'Food & Dining', 'icon': '🍕', 'description': 'Groceries, restaurants, food delivery', 'color': '#FF6B6B'},
+    {'name': 'Transportation', 'icon': '🚗', 'description': 'Gas, public transit, parking, car maintenance', 'color': '#4ECDC4'},
+    {'name': 'Shopping', 'icon': '🛍️', 'description': 'Clothing, electronics, home goods', 'color': '#FFE66D'},
+    {'name': 'Entertainment', 'icon': '🎉', 'description': 'Movies, events, hobbies, subscriptions', 'color': '#95E1D3'},
+    {'name': 'Bills & Utilities', 'icon': '💡', 'description': 'Electricity, water, internet, phone', 'color': '#F38181'},
+    {'name': 'Healthcare', 'icon': '🏥', 'description': 'Medical, pharmacy, insurance', 'color': '#AA96DA'},
+    {'name': 'Travel', 'icon': '✈️', 'description': 'Flights, hotels, vacation expenses', 'color': '#FCBAD3'},
+    {'name': 'Education', 'icon': '📚', 'description': 'Books, courses, tuition, supplies', 'color': '#A8E6CF'},
+    {'name': 'Personal Care', 'icon': '💆', 'description': 'Haircut, spa, cosmetics', 'color': '#FFD3B6'},
+    {'name': 'Gifts & Donations', 'icon': '🎁', 'description': 'Presents, charity, contributions', 'color': '#FFAAA5'},
+    {'name': 'Housing', 'icon': '🏠', 'description': 'Rent, mortgage, home maintenance', 'color': '#A0CED9'},
+    {'name': 'Fitness', 'icon': '🏋️', 'description': 'Gym, sports, wellness', 'color': '#AEC6CF'},
+    {'name': 'Pets', 'icon': '🐕', 'description': 'Pet food, vet, grooming', 'color': '#F49AC2'},
+    {'name': 'Insurance', 'icon': '🛡️', 'description': 'All types of insurance', 'color': '#B39EB5'},
+    {'name': 'Other', 'icon': '📌', 'description': 'Miscellaneous expenses', 'color': '#C5C5C5'},
+]
